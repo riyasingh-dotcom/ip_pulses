@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { isValidPublicIp, normalizeIp } from "./validate"
+import { isValidPublicIp, isValidDomain, normalizeIp } from "./validate"
 
 describe("isValidPublicIp", () => {
   describe("valid public IPs", () => {
@@ -92,6 +92,36 @@ describe("isValidPublicIp", () => {
   })
 })
 
+describe("isValidDomain", () => {
+  it("accepts common domains", () => {
+    expect(isValidDomain("google.com")).toBe(true)
+    expect(isValidDomain("example.co.uk")).toBe(true)
+    expect(isValidDomain("sub.domain.example.com")).toBe(true)
+    expect(isValidDomain("github.io")).toBe(true)
+  })
+
+  it("rejects plain IP addresses", () => {
+    expect(isValidDomain("8.8.8.8")).toBe(false)
+    expect(isValidDomain("192.168.1.1")).toBe(false)
+  })
+
+  it("rejects single-label names without TLD", () => {
+    expect(isValidDomain("localhost")).toBe(false)
+    expect(isValidDomain("hostname")).toBe(false)
+  })
+
+  it("rejects domains with invalid characters", () => {
+    expect(isValidDomain("not a domain")).toBe(false)
+    expect(isValidDomain("bad_domain.com")).toBe(false)
+    expect(isValidDomain("")).toBe(false)
+  })
+
+  it("rejects domains exceeding 253 characters", () => {
+    const longDomain = "a".repeat(250) + ".com"
+    expect(isValidDomain(longDomain)).toBe(false)
+  })
+})
+
 describe("normalizeIp", () => {
   it("trims leading and trailing whitespace", () => {
     expect(normalizeIp("  8.8.8.8  ")).toBe("8.8.8.8")
@@ -101,6 +131,10 @@ describe("normalizeIp", () => {
   it("lowercases IPv6 addresses", () => {
     expect(normalizeIp("2001:DB8::1")).toBe("2001:db8::1")
     expect(normalizeIp("FE80::1")).toBe("fe80::1")
+  })
+
+  it("lowercases domain names", () => {
+    expect(normalizeIp("Google.COM")).toBe("google.com")
   })
 
   it("leaves valid IPv4 unchanged", () => {

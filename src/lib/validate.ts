@@ -43,3 +43,11 @@ export function isValidPublicIp(ip: string): boolean {
 export function normalizeIp(ip: string): string {
   return ip.trim().toLowerCase()
 }
+
+const DOMAIN_REGEX =
+  /^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/
+
+export function isValidDomain(input: string): boolean {
+  if (input.length > 253) return false
+  return DOMAIN_REGEX.test(input)
+}

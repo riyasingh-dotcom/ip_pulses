@@ -2,11 +2,14 @@
 
 import { useState } from "react"
 import type { IpLookupResult, LookupApiResponse } from "@/types/ip"
-import { isValidPublicIp, normalizeIp } from "@/lib/validate"
+import { isValidPublicIp, isValidDomain, normalizeIp } from "@/lib/validate"
 import { ResultSection, type ResultField } from "./ResultSection"
 
 function buildLocationFields(result: IpLookupResult): ResultField[] {
   return [
+    result.resolvedFrom
+      ? { label: "Queried Domain", value: result.resolvedFrom, valueTestId: "result-domain", copyTestId: "copy-domain" }
+      : null,
     { label: "IP Address", value: result.ip, valueTestId: "result-ip", copyTestId: "copy-ip" },
     result.hostname ? { label: "Hostname", value: result.hostname } : null,
     result.city ? { label: "City", value: result.city } : null,
@@ -76,12 +79,12 @@ export function LookupPage(): React.JSX.Element {
     const ip = normalizeIp(input)
 
     if (!ip) {
-      setError("Please enter an IP address")
+      setError("Please enter an IP address or domain name")
       return
     }
 
-    if (!isValidPublicIp(ip)) {
-      setError("Invalid or private IP address. Enter a public IPv4 or IPv6 address.")
+    if (!isValidPublicIp(ip) && !isValidDomain(ip)) {
+      setError("Enter a valid public IP address (e.g. 8.8.8.8) or domain name (e.g. google.com)")
       return
     }
 
@@ -136,9 +139,9 @@ export function LookupPage(): React.JSX.Element {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Enter a public IP address (e.g. 8.8.8.8)"
+            placeholder="IP address or domain (e.g. 8.8.8.8 or google.com)"
             className="flex-1 rounded-lg border border-gray-300 px-4 py-2.5 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            aria-label="IP address"
+            aria-label="IP address or domain name"
           />
           <button
             data-testid="lookup-button"

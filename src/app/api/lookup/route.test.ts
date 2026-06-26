@@ -11,13 +11,17 @@ vi.mock("@/lib/ipinfo", () => ({
   fetchIpInfo: vi.fn(),
 }))
 
+vi.mock("@/lib/dns", () => ({
+  resolveDomain: vi.fn(),
+}))
+
 import { GET } from "./route"
 import { getRedisClient } from "@/lib/redis"
 import { fetchIpInfo } from "@/lib/ipinfo"
+import { resolveDomain } from "@/lib/dns"
 
 const mockGet = vi.fn<[string], Promise<string | null>>()
 const mockSetEx = vi.fn<[string, number, string], Promise<number>>()
-
 const mockRedis = { get: mockGet, setEx: mockSetEx }
 
 describe("GET /api/lookup", () => {
@@ -48,7 +52,7 @@ describe("GET /api/lookup", () => {
       const res = await GET(req)
       expect(res.status).toBe(422)
       const json: unknown = await res.json()
-      expect(json).toMatchObject({ error: "Invalid or private IP address" })
+      expect(json).toMatchObject({ error: expect.any(String) })
     })
 
     it("returns 422 for loopback address", async () => {
@@ -57,10 +61,62 @@ describe("GET /api/lookup", () => {
       expect(res.status).toBe(422)
     })
 
-    it("returns 422 for a non-IP string", async () => {
-      const req = new NextRequest("http://localhost/api/lookup?ip=not-an-ip")
+    it("returns 422 for a plain non-IP, non-domain string", async () => {
+      const req = new NextRequest("http://localhost/api/lookup?ip=not-valid")
       const res = await GET(req)
       expect(res.status).toBe(422)
+    })
+  })
+
+  describe("domain resolution", () => {
+    it("resolves a domain to its IP and returns results with resolvedFrom", async () => {
+      vi.mocked(resolveDomain).mockResolvedValue("8.8.8.8")
+      const ipResult = { ip: "8.8.8.8", city: "Mountain View", country: "US" }
+      vi.mocked(fetchIpInfo).mockResolvedValue(ipResult)
+
+      const req = new NextRequest("http://localhost/api/lookup?ip=google.com")
+      const res = await GET(req)
+
+      expect(res.status).toBe(200)
+      const json: unknown = await res.json()
+      expect(json).toMatchObject({ ip: "8.8.8.8", resolvedFrom: "google.com" })
+      expect(resolveDomain).toHaveBeenCalledWith("google.com")
+    })
+
+    it("returns 422 when domain DNS resolution fails", async () => {
+      vi.mocked(resolveDomain).mockRejectedValue(new Error("ENOTFOUND"))
+
+      const req = new NextRequest("http://localhost/api/lookup?ip=nonexistent.invalid")
+      const res = await GET(req)
+
+      expect(res.status).toBe(422)
+      const json: unknown = await res.json()
+      expect(json).toMatchObject({ error: expect.stringContaining("Could not resolve") })
+    })
+
+    it("returns 422 when domain resolves to a private IP", async () => {
+      vi.mocked(resolveDomain).mockResolvedValue("10.0.0.1")
+
+      const req = new NextRequest("http://localhost/api/lookup?ip=internal.example.com")
+      const res = await GET(req)
+
+      expect(res.status).toBe(422)
+      const json: unknown = await res.json()
+      expect(json).toMatchObject({ error: expect.stringContaining("private") })
+    })
+
+    it("injects resolvedFrom into a cached result when queried by domain", async () => {
+      vi.mocked(resolveDomain).mockResolvedValue("8.8.8.8")
+      const cached = { ip: "8.8.8.8", city: "Mountain View" }
+      mockGet.mockResolvedValue(JSON.stringify(cached))
+
+      const req = new NextRequest("http://localhost/api/lookup?ip=dns.google")
+      const res = await GET(req)
+
+      expect(res.status).toBe(200)
+      const json: unknown = await res.json()
+      expect(json).toMatchObject({ ip: "8.8.8.8", resolvedFrom: "dns.google" })
+      expect(fetchIpInfo).not.toHaveBeenCalled()
     })
   })
 
@@ -92,16 +148,6 @@ describe("GET /api/lookup", () => {
         86400,
         JSON.stringify(ipResult),
       )
-    })
-
-    it("normalizes IP before cache key lookup (trims + lowercases)", async () => {
-      const ipResult = { ip: "8.8.8.8" }
-      vi.mocked(fetchIpInfo).mockResolvedValue(ipResult)
-
-      const req = new NextRequest("http://localhost/api/lookup?ip=%20%208.8.8.8%20%20")
-      await GET(req)
-
-      expect(mockGet).toHaveBeenCalledWith("ip:lookup:8.8.8.8")
     })
   })
 

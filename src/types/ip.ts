@@ -32,6 +32,7 @@ export type PrivacyInfo = {
 
 export type IpLookupResult = {
   ip: string
+  resolvedFrom?: string
   hostname?: string
   city?: string
   region?: string

@@ -52,3 +52,13 @@ export type LookupErrorResponse = {
 }
 
 export type LookupApiResponse = IpLookupResult | LookupErrorResponse
+
+export type LookupHistoryItem = {
+  id: number
+  query: string
+  resolved_ip: string
+  country: string | null
+  city: string | null
+  org: string | null
+  looked_up_at: string
+}

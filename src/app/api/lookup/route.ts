@@ -4,6 +4,7 @@ import { isValidPublicIp, isValidDomain, normalizeIp } from "@/lib/validate"
 import { getRedisClient, buildCacheKey, CACHE_TTL } from "@/lib/redis"
 import { fetchIpInfo } from "@/lib/ipinfo"
 import { resolveDomain } from "@/lib/dns"
+import { logLookup } from "@/lib/history"
 import type { IpLookupResult } from "@/types/ip"
 
 const QuerySchema = z.object({
@@ -54,13 +55,27 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
     if (cached) {
       const cachedResult = JSON.parse(cached) as IpLookupResult
-      return NextResponse.json(
-        resolvedFrom ? { ...cachedResult, resolvedFrom } : cachedResult,
-      )
+      const response = resolvedFrom ? { ...cachedResult, resolvedFrom } : cachedResult
+      void logLookup({
+        query: resolvedFrom ?? ip,
+        resolved_ip: ip,
+        country: cachedResult.country ?? null,
+        city: cachedResult.city ?? null,
+        org: cachedResult.org ?? null,
+      }).catch((err: unknown) => console.error("History log failed:", err))
+      return NextResponse.json(response)
     }
 
     const result = await fetchIpInfo(ip)
     await redis.setEx(cacheKey, CACHE_TTL, JSON.stringify(result))
+
+    void logLookup({
+      query: resolvedFrom ?? ip,
+      resolved_ip: ip,
+      country: result.country ?? null,
+      city: result.city ?? null,
+      org: result.org ?? null,
+    }).catch((err: unknown) => console.error("History log failed:", err))
 
     return NextResponse.json(resolvedFrom ? { ...result, resolvedFrom } : result)
   } catch (err) {

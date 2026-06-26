@@ -25,14 +25,14 @@ export function CopyField({
   }
 
   return (
-    <div className="flex items-center justify-between px-4 py-3">
+    <div className="group flex items-center justify-between px-4 py-3 transition-colors hover:bg-gray-50/60">
       <div className="min-w-0 flex-1">
-        <dt className="text-xs font-medium uppercase tracking-wider text-gray-400">
+        <dt className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">
           {label}
         </dt>
         <dd
           data-testid={valueTestId}
-          className="mt-0.5 truncate font-mono text-sm text-gray-900"
+          className="mt-0.5 truncate font-mono text-sm text-gray-800"
         >
           {value}
         </dd>
@@ -40,9 +40,13 @@ export function CopyField({
       <button
         data-testid={copyTestId}
         onClick={handleCopy}
-        className="ml-4 min-w-[52px] rounded px-2 py-1 text-xs font-medium text-blue-600 transition-colors hover:bg-blue-50 hover:text-blue-800"
+        className={`ml-4 min-w-[58px] rounded-md px-2.5 py-1 text-xs font-medium transition-all ${
+          copied
+            ? "bg-emerald-50 text-emerald-700"
+            : "text-gray-400 hover:bg-blue-50 hover:text-blue-700 group-hover:text-gray-500"
+        }`}
       >
-        {copied ? "Copied!" : "Copy"}
+        {copied ? "✓ Copied" : "Copy"}
       </button>
     </div>
   )

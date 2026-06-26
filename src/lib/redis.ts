@@ -17,10 +17,7 @@ export async function getRedisClient(): Promise<RedisClient> {
   })
 
   await client.connect()
-
-  if (process.env.NODE_ENV !== "production") {
-    globalForRedis._redis = client
-  }
+  globalForRedis._redis = client
 
   return client
 }

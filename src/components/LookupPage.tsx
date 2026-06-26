@@ -6,8 +6,12 @@ import { isValidPublicIp, isValidDomain, normalizeIp } from "@/lib/validate"
 import { ResultSection, type ResultField } from "./ResultSection"
 import { RecentLookups } from "./RecentLookups"
 
+function compact(fields: (ResultField | null)[]): ResultField[] {
+  return fields.filter((f): f is ResultField => f !== null)
+}
+
 function buildLocationFields(result: IpLookupResult): ResultField[] {
-  return [
+  return compact([
     result.resolvedFrom
       ? {
           label: "Queried Domain",
@@ -24,51 +28,51 @@ function buildLocationFields(result: IpLookupResult): ResultField[] {
     result.postal ? { label: "Postal Code", value: result.postal } : null,
     result.timezone ? { label: "Timezone", value: result.timezone } : null,
     result.loc ? { label: "Coordinates", value: result.loc } : null,
-  ].filter((f): f is ResultField => f !== null)
+  ])
 }
 
 function buildNetworkFields(result: IpLookupResult): ResultField[] {
-  return [
+  return compact([
     result.org ? { label: "Organization", value: result.org } : null,
     result.asn?.asn ? { label: "ASN", value: result.asn.asn } : null,
     result.asn?.name ? { label: "ASN Name", value: result.asn.name } : null,
     result.asn?.domain ? { label: "ASN Domain", value: result.asn.domain } : null,
     result.asn?.route ? { label: "Route", value: result.asn.route } : null,
     result.asn?.type ? { label: "Network Type", value: result.asn.type } : null,
-  ].filter((f): f is ResultField => f !== null)
+  ])
 }
 
 function buildCompanyFields(result: IpLookupResult): ResultField[] {
   if (!result.company) return []
-  return [
+  return compact([
     result.company.name ? { label: "Company", value: result.company.name } : null,
     result.company.domain ? { label: "Domain", value: result.company.domain } : null,
     result.company.type ? { label: "Type", value: result.company.type } : null,
-  ].filter((f): f is ResultField => f !== null)
+  ])
 }
 
 function buildPrivacyFields(result: IpLookupResult): ResultField[] {
   if (!result.privacy) return []
-  return [
+  return compact([
     { label: "VPN", value: result.privacy.vpn ? "Yes" : "No" },
     { label: "Proxy", value: result.privacy.proxy ? "Yes" : "No" },
     { label: "Tor", value: result.privacy.tor ? "Yes" : "No" },
     { label: "Relay", value: result.privacy.relay ? "Yes" : "No" },
     { label: "Hosting", value: result.privacy.hosting ? "Yes" : "No" },
     result.privacy.service ? { label: "Service", value: result.privacy.service } : null,
-  ].filter((f): f is ResultField => f !== null)
+  ])
 }
 
 function buildAbuseFields(result: IpLookupResult): ResultField[] {
   if (!result.abuse) return []
-  return [
+  return compact([
     result.abuse.name ? { label: "Contact Name", value: result.abuse.name } : null,
     result.abuse.email ? { label: "Email", value: result.abuse.email } : null,
     result.abuse.phone ? { label: "Phone", value: result.abuse.phone } : null,
     result.abuse.address ? { label: "Address", value: result.abuse.address } : null,
     result.abuse.network ? { label: "Network", value: result.abuse.network } : null,
     result.abuse.country ? { label: "Country", value: result.abuse.country } : null,
-  ].filter((f): f is ResultField => f !== null)
+  ])
 }
 
 export function LookupPage(): React.JSX.Element {

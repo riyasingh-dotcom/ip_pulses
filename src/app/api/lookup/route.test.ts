@@ -24,8 +24,8 @@ import { getRedisClient } from "@/lib/redis"
 import { fetchIpInfo } from "@/lib/ipinfo"
 import { resolveDomain } from "@/lib/dns"
 
-const mockGet = vi.fn<[string], Promise<string | null>>()
-const mockSetEx = vi.fn<[string, number, string], Promise<number>>()
+const mockGet = vi.fn<(key: string) => Promise<string | null>>()
+const mockSetEx = vi.fn<(key: string, ttl: number, value: string) => Promise<number>>()
 const mockRedis = { get: mockGet, setEx: mockSetEx }
 
 describe("GET /api/lookup", () => {
@@ -39,7 +39,7 @@ describe("GET /api/lookup", () => {
   })
 
   afterEach(() => {
-    vi.restoreAllMocks()
+    vi.clearAllMocks()
   })
 
   describe("input validation", () => {
